@@ -1,2 +1,19 @@
-# pubmed_utils
-Helpful stuff to use in pubmed
+# get_by_author
+A script that accepts a file of author names and prints out the collective papers of these authors. non-redundant. I.e. of two or more authors collaborated on a paper, that paper will appear only once.
+
+## Prerequisites
+* Python >3.6
+* Biopython  https://biopython.org
+
+## Installation
+Download get_by_author.py
+
+## Running
+```
+python get_by_author.py 
+```
+
+## Arguments
+```
+-y/--years  year range. E.g. -
+```
