@@ -15,8 +15,8 @@ python get_by_author.py --email="idoerg@iastate.edu" --years 2015 2021 --outfile
 ```
 
 ## Arguments
-
-* 
+* ```-n, --names``` list of names
+* ``` -i, --infile``` if more htan one person, they need to be in a file
 * ``` -m, --email ``` user email. Required by NCBI and therefore required. The author of this software couldn't care less about your email address.
 * ```-y,  --years```  year range. E.g. ```--years 2007 2020``` will filter by papers published in those years only. Default: 1930 until the current year.
 * ```-o,  --outfile``` output file. Optional. Default: screen output.
