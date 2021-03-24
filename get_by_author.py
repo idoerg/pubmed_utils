@@ -1,20 +1,11 @@
+#!/usr/bin/env python
 
 from Bio import Entrez, Medline
+from datetime import datetime
 import csv
 import sys
-from datetime import datetime
-
-class color:
-   PURPLE = '\033[95m'
-   CYAN = '\033[96m'
-   DARKCYAN = '\033[36m'
-   BLUE = '\033[94m'
-   GREEN = '\033[92m'
-   YELLOW = '\033[93m'
-   RED = '\033[91m'
-   BOLD = '\033[1m'
-   UNDERLINE = '\033[4m'
-   END = '\033[0m'
+import argparse
+import re
 
 def get_by_author(name, affiliation):
     handle = Entrez.esearch(db="pubmed", 
@@ -56,7 +47,7 @@ def prep_bibliography(paper_list):
         printlist.append(printrec)
     return(printlist)
 
-def in_year(paper_rec,year_range):
+def in_year_range(paper_rec,year_range):
     retval = False
     pub_year = int(paper_rec['DP'][:4])
     if pub_year in year_range:
@@ -65,12 +56,13 @@ def in_year(paper_rec,year_range):
 
 
 
-def main(author_file, email="idoerg@iastate.edu", 
-         years_back=4, affiliation="Iowa State University"):
+def main(author_file, email, years, 
+         affiliation="Iowa State University",outfile=None):
     Entrez.email = email
-
-    thisyear = int(datetime.now().year)
-    year_range = range(thisyear-years_back, thisyear+1)
+    if years:
+        year_range = range(years[0], years[1]+1)
+    else:
+        year_range = range(1930, int(datetime.now().year))
     author_list = []
     with open(author_file) as in_authors:
         author_reader = csv.reader(in_authors,delimiter='\t')
@@ -81,15 +73,33 @@ def main(author_file, email="idoerg@iastate.edu",
     paper_list = get_papers_by_ids(pubmed_ids)
     papers_in_year = []
     for paper in paper_list:
-        if in_year(paper, year_range):
+        if in_year_range(paper, year_range):
             papers_in_year.append(paper)
     printlist = prep_bibliography(papers_in_year)
-    for i in printlist:
-        print(i)
+    if outfile:
+        with open(outfile,'w') as f:
+            for i in printlist:
+                print(i,f)
+        f.close()
+    else:
+        for i in printlist:
+            print(i)
 
 if __name__ == '__main__':
-    main(sys.argv[1])
 
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument('infile')
+    parser.add_argument('-o','--outfile')
+    parser.add_argument('-m','--email',required=True)
+    parser.add_argument('-a','--affil',default="Iowa State University")
+    parser.add_argument('-y','--years',nargs=2,type=int)
+    args = parser.parse_args()
+    if args.years:
+        args.years.sort()
+        if args.years[0] < 1930 or args.years[1] > int(datetime.now().year):
+            raise ValueError(f'Bad year range {args.years[0]}, {args.years[1]}')
+    if not re.match('^[A-z0-9._%+-]+@[A-z0-9.-]+\.[A-z]{2,}$',args.email):
+        raise ValueError(f'Invalid email address {args.email}')
+    main(args.infile, args.email, args.years, args.affil,args.outfile)
 
 
