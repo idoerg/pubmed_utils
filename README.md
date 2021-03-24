@@ -14,6 +14,6 @@ python get_by_author.py
 ```
 
 ## Arguments
-```
--y/--years  year range. E.g. -
-```
+
+* ```-y/--years```  year range. E.g. ```--years 2007 2020``` will filter by papers publisehd in those years only. Default: 1930 until the current yeat
+* 
