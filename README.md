@@ -16,12 +16,15 @@ python get_by_author.py --email="idoerg@iastate.edu" --years 2015 2021 --outfile
 
 ## Arguments
 * ```-n, --names``` list of names
-* ``` -i, --infile``` if more htan one person, they need to be in a file
+* ``` -i, --infile``` if more than one author, it is preferable to read in from a file.
 * ``` -m, --email ``` user email. Required by NCBI and therefore required. The author of this software couldn't care less about your email address.
 * ```-y,  --years```  year range. E.g. ```--years 2007 2020``` will filter by papers published in those years only. Default: 1930 until the current year.
 * ```-o,  --outfile``` output file. Optional. Default: screen output.
 * ```-s, --datesort {f,F,r,R,forward,reverse}``` sort by date, [f]orward or [r]everse. Default: forward
 * ```-a,  --affil``` Institutional affiliation. Optional, but highly recpommended if this script is used to generate publication lists for departmental reviews.
 *  ```-h, --help``` prints help screen and exits
+
+## Author file format
+Firstname<tab>LastName<tab>Initial
 
 
