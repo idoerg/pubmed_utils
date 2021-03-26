@@ -7,9 +7,14 @@ import sys
 import argparse
 import re
 
+YEAR = re.compile("(19|20)[0-9][0-9]")
 def get_by_author(name, affiliation):
-    handle = Entrez.esearch(db="pubmed", 
-            term=f"{name}[AU] AND {affiliation}[AD]",retmax=100)
+    if not affiliation:
+        handle = Entrez.esearch(db="pubmed", 
+            term=f"{name}[AU]",retmax=300)
+    else:
+        handle = Entrez.esearch(db="pubmed", 
+                term=f"{name}[AU] AND {affiliation}[AD]",retmax=300)
     record = Entrez.read(handle)
     handle.close()
     id_set = set(record['IdList'])
@@ -41,65 +46,91 @@ def prep_bibliography(paper_list):
         title = paper_rec['TI']
         journal = paper_rec['JT']
         journal_abbr = paper_rec['TA']
-        # date = paper_rec['DP']
+        # year = int(paper_rec['DP'][:4])
+        year = get_paper_year(paper_rec)
         source = paper_rec['SO']
         printrec = f"{au_string}\n{title}\n{source}\n//\n"
-        printlist.append(printrec)
+        printlist.append((year,printrec))
     return(printlist)
 
 def in_year_range(paper_rec,year_range):
     retval = False
-    pub_year = int(paper_rec['DP'][:4])
+    pub_year = get_paper_year(paper_rec)
     if pub_year in year_range:
         retval = True
     return retval
 
-
-
-def main(author_file, email, years, 
-         affiliation="Iowa State University",outfile=None):
-    Entrez.email = email
-    if years:
-        year_range = range(years[0], years[1]+1)
+def get_paper_year(paper_rec):
+    pub_year = 0
+    pyear_found = YEAR.search(paper_rec['DP'])
+    if not pyear_found:
+        sys.stdout.write(
+        f"Could not find publication year for {paper_rec['TI']}\n{paper_rec['SO']}\n{paper_rec['DP']}\n")
     else:
-        year_range = range(1930, int(datetime.now().year))
-    author_list = []
-    with open(author_file) as in_authors:
-        author_reader = csv.reader(in_authors,delimiter='\t')
-        for inline in author_reader:
-            author = f"{inline[0]} {inline[1]}"
-            author_list.append(author)
+        pub_year = int(pyear_found.group())
+    return pub_year
+
+
+def main(author_list, email, years, 
+         affiliation="Iowa State University",datesort="F",outfile=None):
+    Entrez.email = email
+    year_range = range(years[0],years[1]+1)
+    print(author_list)
     pubmed_ids = get_all_pubmed_ids(author_list, affiliation)
+    print(pubmed_ids)
     paper_list = get_papers_by_ids(pubmed_ids)
     papers_in_year = []
     for paper in paper_list:
         if in_year_range(paper, year_range):
             papers_in_year.append(paper)
     printlist = prep_bibliography(papers_in_year)
-    if outfile:
-        with open(outfile,'w') as f:
-            for i in printlist:
-                print(i,f)
-        f.close()
-    else:
-        for i in printlist:
-            print(i)
+    printlist.sort()
+    if datesort[0].upper() == 'R':
+        printlist.reverse()
+    for i in printlist:
+        print(i[1],file=outfile)
+
+
+def author_file_to_list(author_file):
+    author_list = []
+    author_reader = csv.reader(author_file,delimiter='\t')
+    for inline in author_reader:
+        author = f"{inline[1]} {inline[0][0]}{inline[2]}"
+        author_list.append(author)
+    return author_list
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('infile')
-    parser.add_argument('-o','--outfile')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-n','--names',nargs='+',default=None)
+    group.add_argument('-i','--infile',nargs='?',type=argparse.FileType('r'),
+                        default=None)
+
+    parser.add_argument('-o','--outfile',nargs='?',type=argparse.FileType('w'),
+                        default=sys.stdout)
     parser.add_argument('-m','--email',required=True)
-    parser.add_argument('-a','--affil',default="Iowa State University")
-    parser.add_argument('-y','--years',nargs=2,type=int)
+    parser.add_argument('-a','--affil')
+    parser.add_argument('-y','--years',nargs=2,type=int,
+                        default=[1930, int(datetime.now().year)])
+    parser.add_argument('-s','--datesort',choices=['f','F','r','R','forward','reverse'],
+                        default='forward')
+
     args = parser.parse_args()
-    if args.years:
-        args.years.sort()
-        if args.years[0] < 1930 or args.years[1] > int(datetime.now().year):
-            raise ValueError(f'Bad year range {args.years[0]}, {args.years[1]}')
+    # Check year range is good. Nothing before 1930 or after a year in the future.
+    args.years.sort()
+    if args.years[0] < 1930 or args.years[1] > int(datetime.now().year)+1:
+        raise ValueError(f'Bad year range {args.years[0]}, {args.years[1]}')
+    # Check validity of email addresss
     if not re.match('^[A-z0-9._%+-]+@[A-z0-9.-]+\.[A-z]{2,}$',args.email):
         raise ValueError(f'Invalid email address {args.email}')
-    main(args.infile, args.email, args.years, args.affil,args.outfile)
+    print(args.infile)
+    print(args.names)
+    print(args.years)
+    if args.infile:
+        author_list = author_file_to_list(args.infile)
+    else:
+        author_list = args.names
+    main(author_list, args.email, args.years, args.affil, args.datesort, args.outfile)
 
 
