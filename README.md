@@ -25,6 +25,6 @@ python get_by_author.py --email="idoerg@iastate.edu" --years 2015 2021 --outfile
 *  ```-h, --help``` prints help screen and exits
 
 ## Author file format
-Firstname<tab>LastName<tab>Initial
+Firstname\<tab\>LastName\<tab\>Initial
 
 
