@@ -34,7 +34,13 @@ def get_papers_by_ids(id_set):
     paper_list = list(Medline.parse(handle))
     return paper_list
 
-def prep_bibliography(paper_list):
+def include_this_paper(paper_rec,exclude_list):
+    for i in exclude_list:
+        if i.lower() in paper_rec['SO'].lower():
+            return False
+    return True
+
+def prep_bibliography(paper_list,exclude_list):
     au_string = ''
     printlist = []
     for paper_rec in paper_list:
@@ -49,8 +55,9 @@ def prep_bibliography(paper_list):
         # year = int(paper_rec['DP'][:4])
         year = get_paper_year(paper_rec)
         source = paper_rec['SO']
-        printrec = f"{au_string}\n{title}\n{source}\n//\n"
-        printlist.append((year,printrec))
+        if include_this_paper(paper_rec,exclude_list):
+            printrec = f"{au_string}\n{title}\n{source}\n//\n"
+            printlist.append((year,printrec))
     return(printlist)
 
 def in_year_range(paper_rec,year_range):
@@ -72,9 +79,10 @@ def get_paper_year(paper_rec):
 
 
 def main(author_list, email, years, 
-         affiliation="Iowa State University",datesort="F",outfile=None):
+         affiliation,exclude_file,datesort="F",outfile=None):
     Entrez.email = email
     year_range = range(years[0],years[1]+1)
+    exclude_list = []
     print(author_list)
     pubmed_ids = get_all_pubmed_ids(author_list, affiliation)
     print(pubmed_ids)
@@ -83,7 +91,10 @@ def main(author_list, email, years,
     for paper in paper_list:
         if in_year_range(paper, year_range):
             papers_in_year.append(paper)
-    printlist = prep_bibliography(papers_in_year)
+    if exclude_file:
+        exclude_list = [i.strip() for i in exclude_file.readlines()]
+    print(f"excluding: {exclude_list}")
+    printlist = prep_bibliography(papers_in_year,exclude_list)
     printlist.sort()
     if datesort[0].upper() == 'R':
         printlist.reverse()
@@ -115,6 +126,7 @@ if __name__ == '__main__':
                         default=[1930, int(datetime.now().year)])
     parser.add_argument('-s','--datesort',choices=['f','F','r','R','forward','reverse'],
                         default='forward')
+    parser.add_argument('-e','--exclude',nargs='?',type=argparse.FileType('r'), default=None)
 
     args = parser.parse_args()
     # Check year range is good. Nothing before 1930 or after a year in the future.
@@ -131,6 +143,6 @@ if __name__ == '__main__':
         author_list = author_file_to_list(args.infile)
     else:
         author_list = args.names
-    main(author_list, args.email, args.years, args.affil, args.datesort, args.outfile)
+    main(author_list, args.email, args.years, args.affil, args.exclude, args.datesort, args.outfile)
 
 
