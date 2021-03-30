@@ -1,4 +1,4 @@
-# get_by_author
+# paper_chaser
 A script that accepts a file of author names and prints out the collective papers of these authors. non-redundant. I.e. of two or more authors collaborated on a paper, that paper will appear only once. The script uses Biopython's Entrez until to get the papers from the PubMed database. Other manuscript repositories are currently not supported.
 
 ## Prerequisites
@@ -11,7 +11,7 @@ Download get_by_author.py
 ## Running
 Example
 ```
-python get_by_author.py --email="idoerg@iastate.edu" --years 2015 2021 --outfile="my_refs.txt", --affil="Iowa State University"
+python paper_chaser.py --email="idoerg@iastate.edu" --years 2015 2021 --outfile="my_refs.txt", --affil="Iowa State University"
 ```
 
 ## Arguments
@@ -22,6 +22,7 @@ python get_by_author.py --email="idoerg@iastate.edu" --years 2015 2021 --outfile
 * ```-o,  --outfile``` output file. Optional. Default: screen output.
 * ```-s, --datesort {f,F,r,R,forward,reverse}``` sort by date, [f]orward or [r]everse. Default: forward
 * ```-a,  --affil``` Institutional affiliation. Optional, but highly recpommended if this script is used to generate publication lists for departmental reviews.
+*  ```-e, --exclude``` a file that contains titles of journals to exclude, one per line
 *  ```-h, --help``` prints help screen and exits
 
 ## Author file format
