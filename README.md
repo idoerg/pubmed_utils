@@ -11,7 +11,7 @@ Download get_by_author.py
 ## Running
 Example
 ```
-python paper_chaser.py -n "Iddo Friedberg" --email="idoerg@iastate.edu" --years 2015 2021 --outfile="my_refs.txt", --affil="Iowa State University"
+python paper_chaser.py -n "Iddo Friedberg" --email="idoerg@iastate.edu" --years 2015 2021 --outfile="my_refs.txt" --affil="Iowa State University"
 ```
 
 ## Arguments
