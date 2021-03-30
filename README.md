@@ -1,5 +1,5 @@
 # paper_chaser
-A script that accepts a file of author names and prints out the collective papers of these authors. No duplicaitons, i.e. of two or more authors collaborated on a paper, that paper will appear only once. The script uses Biopython's Entrez utilities to get the papers from the PubMed database. Other manuscript repositories are currently not supported.
+A script that accepts a file of author names and prints out the collective papers of these authors. No duplicaitons, i.e. of two or more authors collaborated on a paper, that paper will appear only once. The script uses Biopython's Entrez utilities to get the papers from the PubMed database. Other manuscript repositories are not supported currently.
 
 ## Prerequisites
 * Python >3.6
