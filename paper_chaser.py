@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 
+# Copyright (C) 2021 Iddo Friedberg
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 from Bio import Entrez, Medline
 from datetime import datetime
 import csv
@@ -7,8 +21,20 @@ import sys
 import argparse
 import re
 
-YEAR = re.compile("(19|20)[0-9][0-9]")
+YEAR = re.compile("(19|20)[0-9][0-9]") 
+
 def get_by_author(name, affiliation):
+    """
+    
+    Accepts an author name and (optional) institutional affiliation.  Returns
+    all the papers for which they are a co-author, maximum 300. 
+
+    The pubmed IDs are returned as a set. This is to avoid duplicatoins with
+    other oauthors: if a paper was authored by 2 authors, it will only count
+    once
+
+    """
+
     if not affiliation:
         handle = Entrez.esearch(db="pubmed", 
             term=f"{name}[AU]",retmax=300)
@@ -21,6 +47,13 @@ def get_by_author(name, affiliation):
     return id_set
 
 def get_all_pubmed_ids(author_list, affiliation):
+    """
+    Get all the pubmed IDs of all authors. The pubmed IDs are collected as
+    a set to avoid duplications: if 2 authors authored the same paper, it
+    will only be counted once.
+
+    """
+
     full_id_set = set()
     for author in author_list:
         id_set = get_by_author(author, affiliation)
@@ -29,12 +62,25 @@ def get_all_pubmed_ids(author_list, affiliation):
     return full_id_set
 
 def get_papers_by_ids(id_set):
+    """
+    Receives a set of pubmed IDs, returns a list of paper records in
+    Medline format.
+    """
+
     handle = Entrez.efetch(db="pubmed", id=list(id_set), rettype="medline",
                            retmode="text")
     paper_list = list(Medline.parse(handle))
     return paper_list
 
 def include_this_paper(paper_rec,exclude_list):
+    
+    """
+    If the user supplied a list of journals to exclude, this function is
+    called. A simple string match between the source field in the paper and
+    the list of excluded journals.
+
+    """
+
     for i in exclude_list:
         if i.lower() in paper_rec['SO'].lower():
             return False
@@ -112,21 +158,38 @@ def author_file_to_list(author_file):
 
 if __name__ == '__main__':
 
+    print("""
+    paperchaser  Copyright (C) 2021  Iddo Friedberg 
+    This program comes with ABSOLUTELY NO WARRANTY. 
+    This is free software, and you are welcome to redistribute it
+    under certain conditions. See the GNU General Public License 
+    for more details:
+    <https://www.gnu.org/licenses/gpl-3.0.txt>
+    """)
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-n','--names',nargs='+',default=None)
     group.add_argument('-i','--infile',nargs='?',type=argparse.FileType('r'),
+                       help="""file with author names. Format:
+                       firstname<tab>lastname<tab>initial""",
                         default=None)
 
     parser.add_argument('-o','--outfile',nargs='?',type=argparse.FileType('w'),
                         default=sys.stdout)
-    parser.add_argument('-m','--email',required=True)
-    parser.add_argument('-a','--affil')
+    parser.add_argument('-m','--email',required=True,
+                        help="A valid email is required by Entrez")
+    parser.add_argument('-a','--affil',
+                       help="Institutional affiliation")
     parser.add_argument('-y','--years',nargs=2,type=int,
-                        default=[1930, int(datetime.now().year)])
-    parser.add_argument('-s','--datesort',choices=['f','F','r','R','forward','reverse'],
-                        default='forward')
-    parser.add_argument('-e','--exclude',nargs='?',type=argparse.FileType('r'), default=None)
+                        default=[1930, int(datetime.now().year)],
+                        help="Two years for publication year range. Earliest is 1930, latest is one year in the future")
+    parser.add_argument('-s','--datesort',
+                        choices=['[Ff]orward','[Rr]everse'],
+                        default='forward',
+                        help="Sort by publication year. Default: forward (ascending) publication year.")
+    parser.add_argument('-e','--exclude',nargs='?',
+                        type=argparse.FileType('r'), default=None,
+                        help="Journal titles to exclude")
 
     args = parser.parse_args()
     # Check year range is good. Nothing before 1930 or after a year in the future.
