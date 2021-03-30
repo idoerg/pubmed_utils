@@ -9,7 +9,7 @@ A script that accepts a file of author names and prints out the collective paper
 Download get_by_author.py
 
 ## Running
-Example
+Example. Note that this example will not run unless you replace the ```--email``` argument with a valid email address. 
 ```
 python paper_chaser.py -n "Iddo Friedberg" --email="your_email_here" --years 2015 2021 --outfile="my_refs.txt" --affil="Iowa State University"
 ```
