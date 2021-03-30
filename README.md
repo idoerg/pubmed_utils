@@ -21,7 +21,7 @@ python paper_chaser.py -n "Iddo Friedberg" --email="idoerg@iastate.edu" --years 
 * ```-y,  --years```  year range. E.g. ```--years 2007 2020``` will filter by papers published in those years only. Default: 1930 until the current year.
 * ```-o,  --outfile``` output file. Optional. Default: screen output.
 * ```-s, --datesort {f,F,r,R,forward,reverse}``` sort by date, [f]orward or [r]everse. Default: forward
-* ```-a,  --affil``` Institutional affiliation. Optional, but highly recpommended if this script is used to generate publication lists for departmental reviews.
+* ```-a,  --affil``` Institutional affiliation. Optional, but highly recommended if this script is used to generate publication lists for departmental reviews.
 *  ```-e, --exclude``` a file that contains titles of journals to exclude, one per line
 *  ```-h, --help``` prints help screen and exits
 
