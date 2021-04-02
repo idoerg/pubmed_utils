@@ -29,7 +29,7 @@ def get_by_author(name, affiliation):
     Accepts an author name and (optional) institutional affiliation.  Returns
     all the papers for which they are a co-author, maximum 300. 
 
-    The pubmed IDs are returned as a set. This is to avoid duplicatoins with
+    The pubmed IDs are returned as a set. This is to avoid duplications with
     other oauthors: if a paper was authored by 2 authors, it will only count
     once
 
@@ -73,7 +73,6 @@ def get_papers_by_ids(id_set):
     return paper_list
 
 def include_this_paper(paper_rec,exclude_list):
-    
     """
     If the user supplied a list of journals to exclude, this function is
     called. A simple string match between the source field in the paper and
@@ -86,19 +85,34 @@ def include_this_paper(paper_rec,exclude_list):
             return False
     return True
 
+def prep_conflicts(paper_list,exclude_list):
+    """Create a set of all co-authors in all the papers """
+    au_set = set()
+    for paper_rec in paper_list:
+        for author in paper_rec['FAU']:
+            au_set.add(author)
+    return au_set
+
 def prep_bibliography(paper_list,exclude_list):
+
+    """Prepare a bibliography for printing
+    Arguments:
+    paper_list -- list of papers in Medline format
+    exclude_list -- list of journals to exclude
+    
+    """
     au_string = ''
     printlist = []
     for paper_rec in paper_list:
         au_string = ''
         for author in paper_rec['AU']:
             au_string += f"{author}, "
-        # remove last comma and space from author list 
+        # remove last comma and space from author string
         au_string = au_string[:-2]
         title = paper_rec['TI']
         journal = paper_rec['JT']
         journal_abbr = paper_rec['TA']
-        # year = int(paper_rec['DP'][:4])
+        # Getting the year requires a bit of regexping
         year = get_paper_year(paper_rec)
         source = paper_rec['SO']
         if include_this_paper(paper_rec,exclude_list):
@@ -107,6 +121,7 @@ def prep_bibliography(paper_list,exclude_list):
     return(printlist)
 
 def in_year_range(paper_rec,year_range):
+    """ Check if a paper is in the requrest publication year range"""
     retval = False
     pub_year = get_paper_year(paper_rec)
     if pub_year in year_range:
@@ -114,6 +129,7 @@ def in_year_range(paper_rec,year_range):
     return retval
 
 def get_paper_year(paper_rec):
+    """Use a YEAR regexp on the publication field to find year of publication """
     pub_year = 0
     pyear_found = YEAR.search(paper_rec['DP'])
     if not pyear_found:
@@ -125,13 +141,20 @@ def get_paper_year(paper_rec):
 
 
 def main(author_list, email, years, 
-         affiliation,exclude_file,datesort="F",outfile=None):
+         affiliation,exclude_file,conflicts,datesort="F",outfile=None,verbose=0):
+    print("Chasing papers. This may take a bit...")
     Entrez.email = email
     year_range = range(years[0],years[1]+1)
+    if verbose > 0:
+        print(f"Checking beteween years {years[0]} and {years[1]}")
     exclude_list = []
-    print(author_list)
+    if verbose > 0:
+        print("Authors:")
+        for i in author_list: print(i,)
     pubmed_ids = get_all_pubmed_ids(author_list, affiliation)
-    print(pubmed_ids)
+    if verbose > 1:
+        print("pubmed IDs")
+        for i in pubmed_ids: print(i,)
     paper_list = get_papers_by_ids(pubmed_ids)
     papers_in_year = []
     for paper in paper_list:
@@ -139,16 +162,25 @@ def main(author_list, email, years,
             papers_in_year.append(paper)
     if exclude_file:
         exclude_list = [i.strip() for i in exclude_file.readlines()]
-    print(f"excluding: {exclude_list}")
+    
+    # print(f"excluding: {exclude_list}")
     printlist = prep_bibliography(papers_in_year,exclude_list)
     printlist.sort()
+
     if datesort[0].upper() == 'R':
         printlist.reverse()
     for i in printlist:
         print(i[1],file=outfile)
 
+    if conflicts:
+        conflict_list = list(prep_conflicts(papers_in_year, exclude_list))
+        conflict_list.sort()
+        for i in conflict_list:
+            print(i,file=conflicts)
 
 def author_file_to_list(author_file):
+    """Read in a file with author names. File format:
+       firstname<tab>lastname<tab>initial"""
     author_list = []
     author_reader = csv.reader(author_file,delimiter='\t')
     for inline in author_reader:
@@ -184,28 +216,32 @@ if __name__ == '__main__':
                         default=[1930, int(datetime.now().year)],
                         help="Two years for publication year range. Earliest is 1930, latest is one year in the future")
     parser.add_argument('-s','--datesort',
-                        choices=['[Ff]orward','[Rr]everse'],
+                        choices=['Forward','Reverse','f','F','r','R','forward','reverse'],
                         default='forward',
                         help="Sort by publication year. Default: forward (ascending) publication year.")
     parser.add_argument('-e','--exclude',nargs='?',
                         type=argparse.FileType('r'), default=None,
                         help="Journal titles to exclude")
+    parser.add_argument('-c','--conflicts', type=argparse.FileType('w'),
+                        default=None, help="Co-authors of all authors entered in -i or -n")
+    parser.add_argument('--verbose','-v', action='count', default=0)
 
     args = parser.parse_args()
-    # Check year range is good. Nothing before 1930 or after a year in the future.
+    # Check year range is good. Nothing before 1930 or after a year in the future from now.
     args.years.sort()
     if args.years[0] < 1930 or args.years[1] > int(datetime.now().year)+1:
         raise ValueError(f'Bad year range {args.years[0]}, {args.years[1]}')
     # Check validity of email addresss
     if not re.match('^[A-z0-9._%+-]+@[A-z0-9.-]+\.[A-z]{2,}$',args.email):
         raise ValueError(f'Invalid email address {args.email}')
-    print(args.infile)
-    print(args.names)
-    print(args.years)
+    # print(args.infile)
+    # print(args.names)
+    # print(args.years)
     if args.infile:
         author_list = author_file_to_list(args.infile)
     else:
         author_list = args.names
-    main(author_list, args.email, args.years, args.affil, args.exclude, args.datesort, args.outfile)
+    main(author_list, args.email, args.years, args.affil, 
+            args.exclude, args.conflicts, args.datesort, args.outfile, args.verbose)
 
 
